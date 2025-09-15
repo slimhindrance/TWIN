@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
 
-from services.knowledge_manager import knowledge_manager, SourceType
+from app.services.knowledge_manager import knowledge_manager, SourceType
 
 logger = logging.getLogger(__name__)
 

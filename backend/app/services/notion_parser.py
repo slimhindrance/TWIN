@@ -7,9 +7,9 @@ from datetime import datetime
 import re
 
 from notion_client import Client
-from notion_client.errors import NotionClientError
+from notion_client.errors import APIResponseError, HTTPResponseError
 
-from services.knowledge_source import KnowledgeSource
+from app.services.knowledge_source import KnowledgeSource
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class NotionParser(KnowledgeSource):
             logger.info(f"Successfully authenticated with Notion for user {self.user_id}")
             return True
             
-        except NotionClientError as e:
+        except Exception as e:
             logger.error(f"Notion authentication failed: {e}")
             return False
         except Exception as e:
@@ -99,7 +99,7 @@ class NotionParser(KnowledgeSource):
             logger.info(f"Fetched {len(documents)} documents from Notion")
             return documents
             
-        except NotionClientError as e:
+        except Exception as e:
             logger.error(f"Error fetching Notion documents: {e}")
             return []
         except Exception as e:
@@ -203,7 +203,7 @@ class NotionParser(KnowledgeSource):
             
             return '\n\n'.join(content_parts)
             
-        except NotionClientError as e:
+        except Exception as e:
             logger.error(f"Error extracting content from Notion page {page_id}: {e}")
             return ""
         except Exception as e:

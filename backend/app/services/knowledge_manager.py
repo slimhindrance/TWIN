@@ -5,9 +5,9 @@ import logging
 from typing import Dict, List, Any, Optional
 from enum import Enum
 
-from services.obsidian_parser import ObsidianParser
-from services.notion_parser import NotionParser
-from services.knowledge_source import KnowledgeSource
+from app.services.obsidian_parser import ObsidianParser
+from app.services.notion_parser import NotionParser
+from app.services.knowledge_source import KnowledgeSource
 
 logger = logging.getLogger(__name__)
 
