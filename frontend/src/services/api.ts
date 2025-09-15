@@ -12,6 +12,15 @@ const api = axios.create({
   },
 });
 
+// Request interceptor to add auth headers
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Request interceptor for debugging
 api.interceptors.request.use((config) => {
   console.log('API Request:', config.method?.toUpperCase(), config.url, config.data);
@@ -23,6 +32,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
+    
+    // Handle 401 Unauthorized errors
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      window.location.reload();
+    }
+    
     return Promise.reject(error);
   }
 );
