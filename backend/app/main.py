@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.api.v1.auth import router as auth_router
 from app.services.vector_store import VectorStore
 from app.services.obsidian_watcher import ObsidianWatcher
 

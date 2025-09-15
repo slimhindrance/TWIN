@@ -1,233 +1,349 @@
 """
-Knowledge source management endpoints
+API endpoints for managing data sources (enhanced for Total Life AI Platform)
 """
-import logging
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
+from datetime import datetime
 
-from app.services.knowledge_manager import knowledge_manager, SourceType
-
-logger = logging.getLogger(__name__)
+from app.core.auth import get_current_active_user
+from app.models.user import User
+from app.services.universal_source_manager import universal_source_manager, DataType
 
 router = APIRouter()
 
 
-class NotionCredentials(BaseModel):
-    """Notion API credentials."""
-    notion_api_token: str
+class SourceConnectionRequest(BaseModel):
+    """Request model for connecting a new data source"""
+    source_type: str
+    credentials: Dict[str, Any]
+    permissions: Optional[List[str]] = []
 
 
-class ObsidianCredentials(BaseModel):
-    """Obsidian vault credentials."""
-    vault_path: str
-
-
-class SourceStatus(BaseModel):
-    """Knowledge source status."""
+class SourceResponse(BaseModel):
+    """Response model for source information"""
     type: str
+    name: str
+    category: str
     connected: bool
-    document_count: int
-    configured: bool = True
-    last_synced: Optional[str] = None
-    error: Optional[str] = None
+    connected_at: Optional[str]
+    last_sync: Optional[str]
+    summary: Dict[str, Any]
 
 
-class SourceSyncResult(BaseModel):
-    """Result of source synchronization."""
-    total_documents: int
-    sources_synced: int
-    errors: List[str]
+class SyncRequest(BaseModel):
+    """Request model for syncing data sources"""
+    source_types: Optional[List[str]] = None
+    data_types: Optional[List[str]] = None
 
 
-@router.post("/notion/connect")
-async def connect_notion(credentials: NotionCredentials, request: Request):
-    """Connect user's Notion workspace."""
-    try:
-        # TODO: Get actual user ID from authentication
-        user_id = "current_user"  # Placeholder
-        
-        success = await knowledge_manager.add_source(
-            SourceType.NOTION, 
-            {"notion_api_token": credentials.notion_api_token},
-            user_id
-        )
-        
-        if success:
-            return {
-                "message": "Notion workspace connected successfully", 
-                "status": "connected",
-                "source_type": "notion"
-            }
-        else:
-            raise HTTPException(
-                status_code=400, 
-                detail="Failed to connect to Notion. Please check your API token and permissions."
-            )
-            
-    except Exception as e:
-        logger.error(f"Error connecting Notion: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/obsidian/connect")
-async def connect_obsidian(credentials: ObsidianCredentials, request: Request):
-    """Connect user's Obsidian vault."""
-    try:
-        # TODO: Get actual user ID from authentication
-        user_id = "current_user"  # Placeholder
-        
-        success = await knowledge_manager.add_source(
-            SourceType.OBSIDIAN,
-            {"vault_path": credentials.vault_path},
-            user_id
-        )
-        
-        if success:
-            return {
-                "message": "Obsidian vault connected successfully",
-                "status": "connected", 
-                "source_type": "obsidian"
-            }
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid Obsidian vault path. Please ensure the path exists and contains markdown files."
-            )
-            
-    except Exception as e:
-        logger.error(f"Error connecting Obsidian: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/{source_type}/disconnect")
-async def disconnect_source(source_type: str, request: Request):
-    """Disconnect a knowledge source."""
-    try:
-        # TODO: Get actual user ID from authentication
-        user_id = "current_user"  # Placeholder
-        
-        if source_type not in ["notion", "obsidian"]:
-            raise HTTPException(status_code=400, detail="Unsupported source type")
-        
-        source_enum = SourceType.NOTION if source_type == "notion" else SourceType.OBSIDIAN
-        success = knowledge_manager.remove_source(source_enum, user_id)
-        
-        if success:
-            return {
-                "message": f"{source_type.title()} disconnected successfully",
-                "status": "disconnected",
-                "source_type": source_type
-            }
-        else:
-            raise HTTPException(status_code=404, detail=f"{source_type.title()} source not found")
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error disconnecting {source_type}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/status", response_model=List[SourceStatus])
-async def get_sources_status(request: Request):
-    """Get status of all knowledge sources for the current user."""
-    try:
-        # TODO: Get actual user ID from authentication
-        user_id = "current_user"  # Placeholder
-        
-        statuses = await knowledge_manager.get_source_status(user_id)
-        
-        return [SourceStatus(**status) for status in statuses]
-        
-    except Exception as e:
-        logger.error(f"Error getting sources status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/sync", response_model=SourceSyncResult)
-async def sync_all_sources(background_tasks: BackgroundTasks, request: Request):
-    """Sync all connected knowledge sources."""
-    try:
-        # TODO: Get actual user ID from authentication  
-        user_id = "current_user"  # Placeholder
-        
-        # Get vector store from app state
-        vector_store = request.app.state.vector_store
-        
-        # Run sync in background
-        background_tasks.add_task(
-            knowledge_manager.sync_all_sources, 
-            user_id, 
-            vector_store
-        )
-        
-        return SourceSyncResult(
-            total_documents=0,  # Will be updated after background sync
-            sources_synced=len([k for k in knowledge_manager.sources.keys() if k.startswith(user_id)]),
-            errors=[]
-        )
-        
-    except Exception as e:
-        logger.error(f"Error starting sync: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/supported")
+@router.get("/supported", response_model=List[Dict[str, Any]])
 async def get_supported_sources():
-    """Get list of supported knowledge source types."""
-    return {
-        "sources": [
-            {
-                "type": "obsidian",
-                "name": "Obsidian",
-                "description": "Local Obsidian vault with markdown files",
-                "requires_credentials": ["vault_path"],
-                "free": True
-            },
-            {
-                "type": "notion", 
-                "name": "Notion",
-                "description": "Notion workspace with pages and databases",
-                "requires_credentials": ["notion_api_token"],
-                "free": True,
-                "setup_url": "https://developers.notion.com/docs/create-a-notion-integration"
-            }
-        ]
-    }
-
-
-@router.get("/{source_type}/test")
-async def test_source_connection(source_type: str, request: Request):
-    """Test connection to a specific knowledge source."""
+    """Get list of all supported data sources"""
     try:
-        # TODO: Get actual user ID from authentication
-        user_id = "current_user"  # Placeholder
+        sources = universal_source_manager.get_supported_sources()
+        return sources
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get supported sources: {str(e)}"
+        )
+
+
+@router.post("/connect")
+async def connect_source(
+    request: SourceConnectionRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Connect a new data source for the current user"""
+    try:
+        success = await universal_source_manager.connect_source(
+            user_id=current_user.id,
+            source_type=request.source_type,
+            credentials=request.credentials
+        )
         
-        if source_type not in ["notion", "obsidian"]:
-            raise HTTPException(status_code=400, detail="Unsupported source type")
-        
-        source_enum = SourceType.NOTION if source_type == "notion" else SourceType.OBSIDIAN
-        source = knowledge_manager.get_source(source_enum, user_id)
-        
-        if not source:
+        if not success:
             raise HTTPException(
-                status_code=404, 
-                detail=f"{source_type.title()} source not configured"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to connect {request.source_type}. Check credentials and try again."
             )
-        
-        is_connected = await source.test_connection()
-        doc_count = await source.get_document_count() if is_connected else 0
         
         return {
-            "source_type": source_type,
-            "connected": is_connected,
-            "document_count": doc_count,
-            "message": f"{source_type.title()} connection {'successful' if is_connected else 'failed'}"
+            "message": f"Successfully connected {request.source_type}",
+            "source_type": request.source_type,
+            "connected_at": datetime.utcnow().isoformat()
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error testing {source_type} connection: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error connecting source: {str(e)}"
+        )
+
+
+@router.get("/", response_model=List[SourceResponse])
+async def get_user_sources(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get all connected sources for the current user"""
+    try:
+        sources = await universal_source_manager.get_user_sources(current_user.id)
+        return [SourceResponse(**source) for source in sources]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get sources: {str(e)}"
+        )
+
+
+@router.post("/sync")
+async def sync_sources(
+    request: SyncRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Sync data from connected sources"""
+    try:
+        # Convert string data types to enum
+        data_types = None
+        if request.data_types:
+            data_types = [DataType(dt) for dt in request.data_types if dt in DataType._value2member_map_]
+        
+        result = await universal_source_manager.sync_all_sources(
+            user_id=current_user.id,
+            data_types=data_types
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Sync failed: {str(e)}"
+        )
+
+
+@router.delete("/{source_type}")
+async def disconnect_source(
+    source_type: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Disconnect a data source"""
+    try:
+        # For now, just remove from memory
+        # In production, would also revoke OAuth tokens
+        if current_user.id in universal_source_manager.sources:
+            if source_type in universal_source_manager.sources[current_user.id]:
+                del universal_source_manager.sources[current_user.id][source_type]
+                return {"message": f"Successfully disconnected {source_type}"}
+        
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Source {source_type} not found or not connected"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error disconnecting source: {str(e)}"
+        )
+
+
+# =============================================================================
+# YNAB SPECIFIC ENDPOINTS
+# =============================================================================
+
+class YNABConnectionRequest(BaseModel):
+    """YNAB connection request"""
+    access_token: str
+
+
+@router.post("/ynab/connect")
+async def connect_ynab(
+    request: YNABConnectionRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Connect YNAB account using personal access token"""
+    try:
+        success = await universal_source_manager.connect_source(
+            user_id=current_user.id,
+            source_type="ynab",
+            credentials={"access_token": request.access_token}
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to connect YNAB. Please check your access token and try again."
+            )
+        
+        # Perform initial sync
+        sync_result = await universal_source_manager.sync_all_sources(
+            user_id=current_user.id,
+            data_types=[DataType.TRANSACTIONS]
+        )
+        
+        return {
+            "message": "Successfully connected YNAB",
+            "connection_status": "active",
+            "sync_result": sync_result,
+            "next_steps": [
+                "Your YNAB data is now being processed",
+                "You can query your budget and spending patterns",
+                "Financial insights will be available shortly"
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"YNAB connection error: {str(e)}"
+        )
+
+
+@router.get("/ynab/budgets")
+async def get_ynab_budgets(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get YNAB budget information"""
+    try:
+        if current_user.id not in universal_source_manager.sources:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No data sources connected"
+            )
+        
+        if "ynab" not in universal_source_manager.sources[current_user.id]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="YNAB not connected. Please connect your YNAB account first."
+            )
+        
+        ynab_source = universal_source_manager.sources[current_user.id]["ynab"]
+        data = await ynab_source.fetch_data([DataType.TRANSACTIONS])
+        
+        return {
+            "budgets": data.get("budgets", []),
+            "categories": data.get("categories", []),
+            "summary": await ynab_source.get_data_summary()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get YNAB budgets: {str(e)}"
+        )
+
+
+@router.get("/ynab/transactions")
+async def get_ynab_transactions(
+    current_user: User = Depends(get_current_active_user),
+    limit: int = 100
+):
+    """Get recent YNAB transactions"""
+    try:
+        if current_user.id not in universal_source_manager.sources or \
+           "ynab" not in universal_source_manager.sources[current_user.id]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="YNAB not connected"
+            )
+        
+        ynab_source = universal_source_manager.sources[current_user.id]["ynab"]
+        data = await ynab_source.fetch_data([DataType.TRANSACTIONS])
+        
+        transactions = data.get("transactions", [])[:limit]
+        
+        return {
+            "transactions": transactions,
+            "total_count": len(data.get("transactions", [])),
+            "returned_count": len(transactions)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get YNAB transactions: {str(e)}"
+        )
+
+
+@router.get("/ynab/insights")
+async def get_ynab_insights(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get AI-powered financial insights from YNAB data"""
+    try:
+        if current_user.id not in universal_source_manager.sources or \
+           "ynab" not in universal_source_manager.sources[current_user.id]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="YNAB not connected"
+            )
+        
+        ynab_source = universal_source_manager.sources[current_user.id]["ynab"]
+        data = await ynab_source.fetch_data([DataType.TRANSACTIONS])
+        transactions = data.get("transactions", [])
+        
+        # Generate basic financial insights
+        insights = _generate_financial_insights(transactions)
+        
+        return {
+            "insights": insights,
+            "data_period": "All available data",
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate insights: {str(e)}"
+        )
+
+
+def _generate_financial_insights(transactions: List[Dict]) -> Dict[str, Any]:
+    """Generate basic financial insights from transaction data"""
+    if not transactions:
+        return {"message": "No transaction data available for analysis"}
+    
+    # Basic analysis
+    total_spending = sum(abs(t["amount"]) for t in transactions if t["amount"] < 0)
+    total_income = sum(t["amount"] for t in transactions if t["amount"] > 0)
+    
+    # Category analysis
+    category_spending = {}
+    for transaction in transactions:
+        if transaction["amount"] < 0:  # Only spending
+            category = transaction.get("category", "Uncategorized")
+            category_spending[category] = category_spending.get(category, 0) + abs(transaction["amount"])
+    
+    # Top spending categories
+    top_categories = sorted(category_spending.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    return {
+        "total_spending": total_spending,
+        "total_income": total_income,
+        "net_cash_flow": total_income - total_spending,
+        "transaction_count": len(transactions),
+        "top_spending_categories": [
+            {"category": cat, "amount": amount, "percentage": round(amount/total_spending*100, 1)}
+            for cat, amount in top_categories
+        ],
+        "insights": [
+            f"You've had {len(transactions)} transactions analyzed",
+            f"Your top spending category is {top_categories[0][0] if top_categories else 'Unknown'}",
+            f"Net cash flow: {'Positive' if total_income > total_spending else 'Negative'}",
+            "Connect more data sources for deeper insights across your entire life!"
+        ]
+    }

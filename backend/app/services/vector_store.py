@@ -109,9 +109,10 @@ class VectorStore:
             raise
     
     async def search_documents(
-        self,
-        query: str,
-        limit: int = 10,
+        self, 
+        query: str, 
+        user_id: Optional[str] = None,
+        limit: int = 10, 
         similarity_threshold: float = 0.7
     ) -> List[Dict[str, Any]]:
         """Search for similar documents."""
@@ -119,18 +120,29 @@ class VectorStore:
             raise ValueError("Collection not initialized")
         
         try:
+            # Build query filter for user isolation
+            where_filter = {}
+            if user_id:
+                where_filter["user_id"] = user_id
+            
             # Generate query embedding if OpenAI is available
             if self.openai_client:
                 query_embedding = await self.generate_embedding(query)
-                results = self.collection.query(
-                    query_embeddings=[query_embedding],
-                    n_results=limit
-                )
+                query_params = {
+                    "query_embeddings": [query_embedding],
+                    "n_results": limit
+                }
+                if where_filter:
+                    query_params["where"] = where_filter
+                results = self.collection.query(**query_params)
             else:
-                results = self.collection.query(
-                    query_texts=[query],
-                    n_results=limit
-                )
+                query_params = {
+                    "query_texts": [query],
+                    "n_results": limit
+                }
+                if where_filter:
+                    query_params["where"] = where_filter
+                results = self.collection.query(**query_params)
             
             # Process results
             documents = []
