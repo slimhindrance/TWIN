@@ -36,9 +36,16 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_db"
     COLLECTION_NAME: str = "digital_twin_knowledge"
     
-    # Obsidian Settings
+    # Obsidian Settings (legacy - now handled per user)
     OBSIDIAN_VAULT_PATH: Optional[str] = None
     OBSIDIAN_VAULT_NAME: str = "Digital Twin Vault"
+    
+    # Notion Settings (user-provided credentials - stored per user)
+    NOTION_API_TOKEN: Optional[str] = None  # Global fallback, users provide their own
+    
+    # Knowledge Sources Settings
+    SUPPORTED_SOURCES: List[str] = ["obsidian", "notion"]
+    MAX_SOURCES_PER_USER: int = 10
     
     # File Processing Settings
     MAX_FILE_SIZE_MB: int = 50
