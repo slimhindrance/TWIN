@@ -27,10 +27,31 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
     
+    # AI Provider Settings
+    AI_PRIMARY_PROVIDER: str = "together"  # together, bedrock, openai
+    AI_FALLBACK_PROVIDER: str = "bedrock"
+    
     # OpenAI Settings
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-ada-002"
+    
+    # AWS Bedrock Settings
+    AWS_REGION: str = "us-east-1"
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    BEDROCK_MODEL: str = "anthropic.claude-3-haiku-20240307-v1:0"
+    BEDROCK_EMBEDDING_MODEL: str = "amazon.titan-embed-text-v1"
+    
+    # Together AI Settings
+    TOGETHER_API_KEY: Optional[str] = None
+    TOGETHER_MODEL: str = "meta-llama/Llama-3.1-8B-Instruct-Turbo"
+    TOGETHER_EMBEDDING_MODEL: str = "togethercomputer/m2-bert-80M-8k-retrieval"
+    
+    # Smart Routing Settings
+    SIMPLE_QUERY_MAX_WORDS: int = 15
+    SIMPLE_QUERY_PATTERNS: List[str] = ["what", "when", "where", "who", "how many", "hello", "hi", "thanks"]
+    COMPLEX_QUERY_THRESHOLD: int = 50  # chars for reasoning detection
     
     # Vector Database Settings
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_db"

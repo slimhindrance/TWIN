@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 
 from app.models.schemas import ChatRequest, ChatResponse, ChatMessage
-from app.services.openai_service import OpenAIService
+from app.services.ai_router import AIRouter
 from app.services.vector_store import VectorStore
 from app.core.auth import get_current_active_user, AuthService
 from app.models.user import User
@@ -45,8 +45,7 @@ async def chat(
         
         # Get services from app state
         vector_store: VectorStore = fastapi_request.app.state.vector_store
-        openai_service = OpenAIService()
-        await openai_service.initialize()
+        ai_router: AIRouter = fastapi_request.app.state.ai_router
         
         # Initialize user conversations if needed
         if user_id not in user_conversations:
@@ -69,10 +68,12 @@ async def chat(
             similarity_threshold=0.6
         )
         
-        # Generate AI response
-        response_content = await openai_service.generate_chat_response(
+        # Generate AI response with smart routing
+        response_content, provider_used, complexity = await ai_router.generate_chat_response_with_routing(
             messages=user_conversations[user_id][conversation_id],
             context_documents=context_documents,
+            user_tier=getattr(current_user, 'tier', 'free'),  # Default to free tier
+            force_provider=request.force_provider,  # Allow forcing provider
             max_tokens=request.max_tokens or 4000,
             temperature=request.temperature or 0.7
         )
@@ -99,7 +100,10 @@ async def chat(
             metadata={
                 "context_documents_used": len(context_documents),
                 "total_conversation_length": len(user_conversations[user_id][conversation_id]),
-                "user_id": user_id
+                "user_id": user_id,
+                "ai_provider": provider_used,
+                "query_complexity": complexity.value,
+                "user_tier": getattr(current_user, 'tier', 'free')
             }
         )
         

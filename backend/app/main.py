@@ -12,6 +12,7 @@ from app.api.v1.api import api_router
 from app.api.v1.auth import router as auth_router
 from app.services.vector_store import VectorStore
 from app.services.obsidian_watcher import ObsidianWatcher
+from app.services.ai_router import AIRouter
 
 
 @asynccontextmanager
@@ -21,6 +22,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     vector_store = VectorStore()
     await vector_store.initialize()
     
+    # Initialize AI Router with all providers
+    ai_router = AIRouter()
+    await ai_router.initialize()
+    
     # Start Obsidian watcher if vault path is configured
     if settings.OBSIDIAN_VAULT_PATH:
         obsidian_watcher = ObsidianWatcher()
@@ -28,12 +33,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.obsidian_watcher = obsidian_watcher
     
     app.state.vector_store = vector_store
+    app.state.ai_router = ai_router
     
     yield
     
     # Cleanup
     if hasattr(app.state, 'obsidian_watcher'):
         await app.state.obsidian_watcher.stop()
+    if hasattr(app.state, 'ai_router'):
+        await app.state.ai_router.cleanup()
 
 
 app = FastAPI(

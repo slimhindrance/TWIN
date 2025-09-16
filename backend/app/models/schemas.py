@@ -20,6 +20,7 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = Field(None, description="Conversation ID for context")
     max_tokens: Optional[int] = Field(4000, description="Maximum tokens in response")
     temperature: Optional[float] = Field(0.7, description="Response creativity (0-1)")
+    force_provider: Optional[str] = Field(None, description="Force specific AI provider (openai/bedrock/together)")
 
 
 class ChatResponse(BaseModel):
