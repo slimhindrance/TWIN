@@ -1,0 +1,8 @@
+# AWS CDK Dependencies for Total Life AI Infrastructure
+aws-cdk-lib>=2.100.0
+constructs>=10.0.0
+boto3>=1.28.0
+python-dotenv>=1.0.0
+
+# Additional dependencies for development
+typing-extensions>=4.0.0
