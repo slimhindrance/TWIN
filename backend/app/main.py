@@ -13,12 +13,23 @@ from app.api.v1.auth import router as auth_router
 from app.services.vector_store import VectorStore
 from app.services.obsidian_watcher import ObsidianWatcher
 from app.services.ai_router import AIRouter
+from app.db.session import engine
+from app.db.models import Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler."""
     # Initialize services
+    # Ensure database tables exist
+    # Dev convenience: auto-create tables only outside production
+    if settings.ENVIRONMENT != "production":
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+        except Exception:
+            pass
+
     vector_store = VectorStore()
     await vector_store.initialize()
     

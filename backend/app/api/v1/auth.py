@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException, status, Depends
 
 from app.models.user import User, UserCreate, UserLogin, Token, UserResponse, UserUpdate
 from app.core.auth import AuthService, get_current_user
+from app.db.session import get_session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -15,11 +17,11 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def register_user(user_data: UserCreate):
+async def register_user(user_data: UserCreate, session: AsyncSession = Depends(get_session)):
     """Register a new user."""
     try:
         # Create user
-        user = AuthService.create_user(user_data)
+        user = await AuthService.create_user(user_data, session)
         
         # Create access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -47,11 +49,11 @@ async def register_user(user_data: UserCreate):
 
 
 @router.post("/login", response_model=Token)
-async def login_user(user_data: UserLogin):
+async def login_user(user_data: UserLogin, session: AsyncSession = Depends(get_session)):
     """Login user."""
     try:
         # Authenticate user
-        user = AuthService.authenticate_user(user_data.email, user_data.password)
+        user = await AuthService.authenticate_user(user_data.email, user_data.password, session)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -93,21 +95,19 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 @router.put("/me", response_model=UserResponse) 
 async def update_current_user(
     user_update: UserUpdate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
     """Update current user information."""
     try:
-        # Update user (in production, update in database)
-        from app.core.auth import users_db
-        
-        user_data = users_db.get(current_user.id)
-        if not user_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        
-        user = User(**user_data["user"])
+        # Fetch user from DB
+        from sqlalchemy import select, update as sql_update
+        from app.db.models import UserORM
+        result = await session.execute(select(UserORM).where(UserORM.id == current_user.id))
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        user = current_user
         
         # Update fields
         if user_update.username is not None:
@@ -117,8 +117,17 @@ async def update_current_user(
         if user_update.monthly_limit is not None:
             user.monthly_limit = user_update.monthly_limit
             
-        # Save updated user
-        users_db[current_user.id]["user"] = user.dict()
+        # Persist
+        await session.execute(
+            sql_update(UserORM)
+            .where(UserORM.id == current_user.id)
+            .values(
+                username=user.username,
+                subscription_tier=user.subscription_tier,
+                monthly_limit=user.monthly_limit,
+            )
+        )
+        await session.commit()
         
         logger.info(f"User updated: {user.email}")
         

@@ -92,16 +92,15 @@ const AppContent: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {currentView === 'chat' && <ChatInterface />}
-        {currentView === 'search' && <SearchInterface />}
+        {currentView === 'search' && (
+          <SearchInterface onClose={() => setCurrentView('chat')} />
+        )}
         {currentView === 'sources' && <SourcesManager />}
       </main>
 
       {/* Settings Modal */}
       {showSettings && (
-        <SettingsModal
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-        />
+        <SettingsModal onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

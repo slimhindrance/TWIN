@@ -16,7 +16,8 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-PROJECT_NAME="TotalLifeAI-Production"
+# CloudFormation stack name (override with env var PROJECT_NAME)
+PROJECT_NAME="${PROJECT_NAME:-TotalLifeAI-Prod-Clean}"
 AWS_REGION="us-east-1"
 AWS_PROFILE="default"
 
@@ -179,6 +180,48 @@ fi
 NEW_REVISION=$(echo $NEW_TASK_DEF_ARN | cut -d':' -f2)
 print_info "✅ New task definition: $NEW_TASK_DEF_ARN"
 print_info "✅ New revision: $NEW_REVISION"
+
+# Run DB migrations using a one-off Fargate task (best practice)
+print_step "Running database migrations (alembic upgrade head)..."
+
+# Get service network configuration for running the task in the same subnets/SGs
+NET_CONF=$(aws ecs describe-services \
+    --cluster $CLUSTER_NAME \
+    --services $SERVICE_NAME \
+    --profile $AWS_PROFILE \
+    --query 'services[0].networkConfiguration.awsvpcConfiguration')
+
+SUBNETS=$(echo "$NET_CONF" | jq -r '.subnets | join(",")')
+SECGROUPS=$(echo "$NET_CONF" | jq -r '.securityGroups | join(",")')
+ASSIGN_PUBLIC_IP=$(echo "$NET_CONF" | jq -r '.assignPublicIp')
+
+if [ -z "$SUBNETS" ] || [ -z "$SECGROUPS" ]; then
+  print_warning "Could not detect service network configuration; skipping automated migrations."
+else
+  # Get container name from task definition
+  CONTAINER_NAME=$(echo "$UPDATED_TASK_DEF" | jq -r '.containerDefinitions[0].name')
+  RUN_TASK_JSON=$(aws ecs run-task \
+    --cluster $CLUSTER_NAME \
+    --launch-type FARGATE \
+    --task-definition $NEW_TASK_DEF_ARN \
+    --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECGROUPS],assignPublicIp=$ASSIGN_PUBLIC_IP}" \
+    --overrides "{\"containerOverrides\":[{\"name\":\"$CONTAINER_NAME\",\"command\":[\"alembic\",\"-c\",\"/app/alembic.ini\",\"upgrade\",\"head\"]}]}" \
+    --profile $AWS_PROFILE)
+  MIGRATION_TASK_ARN=$(echo "$RUN_TASK_JSON" | jq -r '.tasks[0].taskArn')
+  if [ "$MIGRATION_TASK_ARN" = "null" ] || [ -z "$MIGRATION_TASK_ARN" ]; then
+    print_warning "Failed to start migration task; proceeding with service update."
+  else
+    print_info "Migration task started: $MIGRATION_TASK_ARN"
+    aws ecs wait tasks-stopped --cluster $CLUSTER_NAME --tasks "$MIGRATION_TASK_ARN" --profile $AWS_PROFILE || true
+    # Check exit code
+    EXIT_CODE=$(aws ecs describe-tasks --cluster $CLUSTER_NAME --tasks "$MIGRATION_TASK_ARN" --profile $AWS_PROFILE --query 'tasks[0].containers[0].exitCode' --output text 2>/dev/null)
+    if [ "$EXIT_CODE" != "0" ]; then
+      print_warning "Migration task exit code: $EXIT_CODE (non-zero). Review logs, but continuing deployment."
+    else
+      print_info "✅ Database migrations completed successfully"
+    fi
+  fi
+fi
 
 # Update the service
 print_step "Updating ECS service..."

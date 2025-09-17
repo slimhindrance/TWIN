@@ -275,6 +275,12 @@ class TotalLifeAIStack(Stack):
             timeout=Duration.seconds(30),
             interval=Duration.seconds(60)
         )
+
+        # Enable ALB stickiness so a user stays on the same task
+        # This mitigates per-task in-memory auth until a shared store is added
+        self.fargate_service.target_group.enable_cookie_stickiness(
+            Duration.hours(8)
+        )
         
         # ========================================
         # AUTO SCALING
@@ -337,6 +343,26 @@ class TotalLifeAIStack(Stack):
             ),
             additional_behaviors={
                 "/api/*": cloudfront.BehaviorOptions(
+                    origin=cloudfront_origins.LoadBalancerV2Origin(
+                        self.fargate_service.load_balancer,
+                        protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY
+                    ),
+                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
+                    cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
+                    origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER
+                ),
+                "/docs*": cloudfront.BehaviorOptions(
+                    origin=cloudfront_origins.LoadBalancerV2Origin(
+                        self.fargate_service.load_balancer,
+                        protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY
+                    ),
+                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
+                    cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
+                    origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER
+                ),
+                "/redoc*": cloudfront.BehaviorOptions(
                     origin=cloudfront_origins.LoadBalancerV2Origin(
                         self.fargate_service.load_balancer,
                         protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY

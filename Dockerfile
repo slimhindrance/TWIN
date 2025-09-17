@@ -20,8 +20,10 @@ RUN pip install poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install --only main --no-root
 
-# Copy backend application code
+# Copy backend application code and alembic migrations
 COPY backend/app ./app
+COPY backend/alembic ./alembic
+COPY backend/alembic.ini ./alembic.ini
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app

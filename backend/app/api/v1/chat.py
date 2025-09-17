@@ -13,21 +13,24 @@ from app.services.ai_router import AIRouter
 from app.services.vector_store import VectorStore
 from app.core.auth import get_current_active_user, AuthService
 from app.models.user import User
+from app.db.session import get_session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, delete
+from app.db.models import ConversationORM, MessageORM
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# In-memory conversation storage per user (in production, use Redis or database)
-# Structure: {user_id: {conversation_id: [messages]}}
-user_conversations: Dict[str, Dict[str, List[ChatMessage]]] = {}
+# Conversations and messages are persisted in the database
 
 
 @router.post("/", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
     fastapi_request: Request,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_session),
 ):
     """
     Generate a chat response using the digital twin AI.
@@ -41,25 +44,51 @@ async def chat(
         user_id = current_user.id
         
         # Update user usage for chat
-        AuthService.update_user_usage(user_id, 1)
+        await AuthService.update_user_usage(user_id, 1, session)
         
         # Get services from app state
         vector_store: VectorStore = fastapi_request.app.state.vector_store
         ai_router: AIRouter = fastapi_request.app.state.ai_router
         
-        # Initialize user conversations if needed
-        if user_id not in user_conversations:
-            user_conversations[user_id] = {}
-        
         # Get or create conversation for this user
         conversation_id = request.conversation_id or str(uuid.uuid4())
-        if conversation_id not in user_conversations[user_id]:
-            user_conversations[user_id][conversation_id] = []
-        
-        # Add user message to conversation
+        if request.conversation_id:
+            # Verify conversation belongs to user
+            existing = await session.execute(
+                select(ConversationORM).where(
+                    ConversationORM.id == conversation_id,
+                    ConversationORM.user_id == user_id,
+                )
+            )
+            if existing.scalar_one_or_none() is None:
+                raise HTTPException(status_code=404, detail="Conversation not found")
+        else:
+            # Create conversation
+            conv = ConversationORM(id=conversation_id, user_id=user_id)
+            session.add(conv)
+            await session.commit()
+
+        # Persist user message
+        user_msg_id = str(uuid.uuid4())
         user_message = ChatMessage(role="user", content=request.message)
-        user_conversations[user_id][conversation_id].append(user_message)
-        
+        session.add(
+            MessageORM(
+                id=user_msg_id,
+                conversation_id=conversation_id,
+                user_id=user_id,
+                role=user_message.role,
+                content=user_message.content,
+                timestamp=user_message.timestamp,
+            )
+        )
+        # Update conversation updated_at
+        from sqlalchemy import update as sql_update
+        from datetime import datetime
+        await session.execute(
+            sql_update(ConversationORM).where(ConversationORM.id == conversation_id).values(updated_at=datetime.utcnow())
+        )
+        await session.commit()
+
         # Search for relevant context (filtered by user)
         context_documents = await vector_store.search_documents(
             query=request.message,
@@ -68,9 +97,18 @@ async def chat(
             similarity_threshold=0.6
         )
         
+        # Fetch prior messages to build context for AI
+        result = await session.execute(
+            select(MessageORM).where(MessageORM.conversation_id == conversation_id).order_by(MessageORM.timestamp.asc())
+        )
+        prior_msgs = result.scalars().all()
+        history: List[ChatMessage] = [
+            ChatMessage(role=m.role, content=m.content, timestamp=m.timestamp) for m in prior_msgs
+        ]
+
         # Generate AI response with smart routing
         response_content, provider_used, complexity = await ai_router.generate_chat_response_with_routing(
-            messages=user_conversations[user_id][conversation_id],
+            messages=history,
             context_documents=context_documents,
             user_tier=getattr(current_user, 'tier', 'free'),  # Default to free tier
             force_provider=request.force_provider,  # Allow forcing provider
@@ -78,13 +116,22 @@ async def chat(
             temperature=request.temperature or 0.7
         )
         
-        # Add assistant response to conversation
+        # Persist assistant response
         assistant_message = ChatMessage(role="assistant", content=response_content)
-        user_conversations[user_id][conversation_id].append(assistant_message)
-        
-        # Keep conversations from growing too large
-        if len(user_conversations[user_id][conversation_id]) > 50:
-            user_conversations[user_id][conversation_id] = user_conversations[user_id][conversation_id][-30:]
+        session.add(
+            MessageORM(
+                id=str(uuid.uuid4()),
+                conversation_id=conversation_id,
+                user_id=user_id,
+                role=assistant_message.role,
+                content=assistant_message.content,
+                timestamp=assistant_message.timestamp,
+            )
+        )
+        await session.execute(
+            sql_update(ConversationORM).where(ConversationORM.id == conversation_id).values(updated_at=datetime.utcnow())
+        )
+        await session.commit()
         
         # Extract source information
         sources = []
@@ -115,64 +162,85 @@ async def chat(
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_session),
 ):
     """Get conversation history for current user."""
     user_id = current_user.id
-    
-    if user_id not in user_conversations:
-        user_conversations[user_id] = {}
-    
-    if conversation_id not in user_conversations[user_id]:
+    # Verify belongs to user
+    conv = await session.execute(
+        select(ConversationORM).where(ConversationORM.id == conversation_id, ConversationORM.user_id == user_id)
+    )
+    if conv.scalar_one_or_none() is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
+    # Fetch messages
+    result = await session.execute(
+        select(MessageORM).where(MessageORM.conversation_id == conversation_id).order_by(MessageORM.timestamp.asc())
+    )
+    msgs = result.scalars().all()
+    messages = [ChatMessage(role=m.role, content=m.content, timestamp=m.timestamp) for m in msgs]
     return {
         "conversation_id": conversation_id,
-        "messages": user_conversations[user_id][conversation_id],
-        "message_count": len(user_conversations[user_id][conversation_id]),
-        "user_id": user_id
+        "messages": messages,
+        "message_count": len(messages),
+        "user_id": user_id,
     }
 
 
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_session),
 ):
     """Delete a conversation for current user."""
     user_id = current_user.id
-    
-    if user_id not in user_conversations:
-        user_conversations[user_id] = {}
-    
-    if conversation_id not in user_conversations[user_id]:
+    # Verify belongs to user
+    conv = await session.execute(
+        select(ConversationORM).where(ConversationORM.id == conversation_id, ConversationORM.user_id == user_id)
+    )
+    if conv.scalar_one_or_none() is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    del user_conversations[user_id][conversation_id]
+    # Delete messages then conversation
+    await session.execute(delete(MessageORM).where(MessageORM.conversation_id == conversation_id))
+    await session.execute(delete(ConversationORM).where(ConversationORM.id == conversation_id))
+    await session.commit()
     return {"message": "Conversation deleted successfully"}
 
 
 @router.get("/conversations")
-async def list_conversations(current_user: User = Depends(get_current_active_user)):
+async def list_conversations(
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_session),
+):
     """List all active conversations for current user."""
     user_id = current_user.id
-    
-    if user_id not in user_conversations:
-        user_conversations[user_id] = {}
-    
-    conversation_list = []
-    for conv_id, messages in user_conversations[user_id].items():
-        if messages:
-            last_message = messages[-1]
-            conversation_list.append({
-                "conversation_id": conv_id,
-                "message_count": len(messages),
-                "last_message_time": last_message.timestamp,
-                "last_message_preview": last_message.content[:100] + "..." if len(last_message.content) > 100 else last_message.content
-            })
-    
+    # Fetch conversations
+    convs = await session.execute(
+        select(ConversationORM).where(ConversationORM.user_id == user_id).order_by(ConversationORM.updated_at.desc())
+    )
+    conv_rows = convs.scalars().all()
+    conversations = []
+    for conv in conv_rows:
+        # Count and last message
+        count_result = await session.execute(
+            select(func.count()).select_from(MessageORM).where(MessageORM.conversation_id == conv.id)
+        )
+        msg_count = count_result.scalar_one()
+        last_result = await session.execute(
+            select(MessageORM).where(MessageORM.conversation_id == conv.id).order_by(MessageORM.timestamp.desc()).limit(1)
+        )
+        last = last_result.scalar_one_or_none()
+        last_time = last.timestamp if last else None
+        last_preview = (last.content[:100] + "...") if last and len(last.content) > 100 else (last.content if last else "")
+        conversations.append({
+            "conversation_id": conv.id,
+            "message_count": int(msg_count or 0),
+            "last_message_time": last_time,
+            "last_message_preview": last_preview,
+        })
     return {
-        "conversations": conversation_list,
-        "total_conversations": len(conversation_list),
-        "user_id": user_id
+        "conversations": conversations,
+        "total_conversations": len(conversations),
+        "user_id": user_id,
     }

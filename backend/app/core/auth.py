@@ -11,6 +11,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid
 
 from app.models.user import User, UserCreate, UserRole
+from app.db.session import get_session, engine
+from app.db.models import Base, UserORM
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 
 # Password hashing
@@ -23,9 +27,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 # HTTP Bearer token
 security = HTTPBearer()
 
-# In-memory user store (in production, use database)
-users_db: Dict[str, Dict[str, Any]] = {}
-users_by_email: Dict[str, str] = {}
+# In-memory cache removed; using database via SQLAlchemy
 
 
 class AuthService:
@@ -66,82 +68,117 @@ class AuthService:
             return None
 
     @staticmethod
-    def create_user(user_data: UserCreate) -> User:
+    async def create_user(user_data: UserCreate, session: AsyncSession) -> User:
         """Create a new user."""
         # Check if user already exists
-        if user_data.email in users_by_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email already exists"
-            )
+        # Check if user already exists
+        existing = await session.execute(select(UserORM).where(UserORM.email == user_data.email))
+        if existing.scalar_one_or_none() is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists")
 
         # Generate user ID
         user_id = str(uuid.uuid4())
 
         # Create user
         hashed_password = AuthService.hash_password(user_data.password)
-        user = User(
+        # Persist
+        row = UserORM(
             id=user_id,
             email=user_data.email,
             username=user_data.username,
-            role=UserRole.USER,
+            role=UserRole.USER.value,
             is_active=True,
             created_at=datetime.utcnow(),
             subscription_tier="free",
             usage_count=0,
-            monthly_limit=100
+            monthly_limit=100,
+            password_hash=hashed_password,
+        )
+        session.add(row)
+        await session.commit()
+        return User(
+            id=row.id,
+            email=row.email,
+            username=row.username,
+            role=UserRole(row.role),
+            is_active=row.is_active,
+            created_at=row.created_at,
+            last_login=row.last_login,
+            subscription_tier=row.subscription_tier,
+            usage_count=row.usage_count,
+            monthly_limit=row.monthly_limit,
         )
 
-        # Store user (in production, save to database)
-        users_db[user_id] = {
-            "user": user.dict(),
-            "password_hash": hashed_password
-        }
-        users_by_email[user_data.email] = user_id
-
-        return user
-
     @staticmethod
-    def authenticate_user(email: str, password: str) -> Optional[User]:
+    async def authenticate_user(email: str, password: str, session: AsyncSession) -> Optional[User]:
         """Authenticate user with email and password."""
-        user_id = users_by_email.get(email)
-        if not user_id:
+        result = await session.execute(select(UserORM).where(UserORM.email == email))
+        row = result.scalar_one_or_none()
+        if row is None:
             return None
-
-        user_data = users_db.get(user_id)
-        if not user_data:
+        if not AuthService.verify_password(password, row.password_hash):
             return None
-
-        if not AuthService.verify_password(password, user_data["password_hash"]):
-            return None
-
-        # Update last login
-        user = User(**user_data["user"])
-        user.last_login = datetime.utcnow()
-        users_db[user_id]["user"] = user.dict()
-
-        return user
+        # Update last_login
+        await session.execute(
+            update(UserORM).where(UserORM.id == row.id).values(last_login=datetime.utcnow())
+        )
+        await session.commit()
+        return User(
+            id=row.id,
+            email=row.email,
+            username=row.username,
+            role=UserRole(row.role),
+            is_active=row.is_active,
+            created_at=row.created_at,
+            last_login=datetime.utcnow(),
+            subscription_tier=row.subscription_tier,
+            usage_count=row.usage_count,
+            monthly_limit=row.monthly_limit,
+        )
 
     @staticmethod
-    def get_user(user_id: str) -> Optional[User]:
+    async def get_user(user_id: str, session: AsyncSession) -> Optional[User]:
         """Get user by ID."""
-        user_data = users_db.get(user_id)
-        if not user_data:
+        result = await session.execute(select(UserORM).where(UserORM.id == user_id))
+        row = result.scalar_one_or_none()
+        if row is None:
             return None
-        return User(**user_data["user"])
+        return User(
+            id=row.id,
+            email=row.email,
+            username=row.username,
+            role=UserRole(row.role),
+            is_active=row.is_active,
+            created_at=row.created_at,
+            last_login=row.last_login,
+            subscription_tier=row.subscription_tier,
+            usage_count=row.usage_count,
+            monthly_limit=row.monthly_limit,
+        )
 
     @staticmethod
-    def update_user_usage(user_id: str, increment: int = 1) -> Optional[User]:
+    async def update_user_usage(user_id: str, increment: int = 1, session: AsyncSession = None) -> Optional[User]:
         """Update user usage count."""
-        user_data = users_db.get(user_id)
-        if not user_data:
+        result = await session.execute(select(UserORM).where(UserORM.id == user_id))
+        row = result.scalar_one_or_none()
+        if row is None:
             return None
-
-        user = User(**user_data["user"])
-        user.usage_count += increment
-        users_db[user_id]["user"] = user.dict()
-
-        return user
+        new_count = (row.usage_count or 0) + increment
+        await session.execute(update(UserORM).where(UserORM.id == user_id).set({"usage_count": new_count}))
+        await session.commit()
+        row.usage_count = new_count
+        return User(
+            id=row.id,
+            email=row.email,
+            username=row.username,
+            role=UserRole(row.role),
+            is_active=row.is_active,
+            created_at=row.created_at,
+            last_login=row.last_login,
+            subscription_tier=row.subscription_tier,
+            usage_count=row.usage_count,
+            monthly_limit=row.monthly_limit,
+        )
 
     @staticmethod
     def check_usage_limit(user: User) -> bool:
@@ -149,7 +186,7 @@ class AuthService:
         return user.usage_count < user.monthly_limit
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), session: AsyncSession = Depends(get_session)) -> User:
     """Get current authenticated user."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -169,7 +206,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception:
         raise credentials_exception
 
-    user = AuthService.get_user(user_id)
+    user = await AuthService.get_user(user_id, session)
     if user is None:
         raise credentials_exception
 

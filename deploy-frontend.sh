@@ -16,7 +16,9 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-PROJECT_NAME="TotalLifeAI-Production"
+# CloudFormation stack name (override with env var PROJECT_NAME)
+# Default matches CDK stack in aws-infrastructure/app.py
+PROJECT_NAME="${PROJECT_NAME:-TotalLifeAI-Prod-Clean}"
 AWS_REGION="us-east-1"
 AWS_PROFILE="default"
 
@@ -59,31 +61,38 @@ fi
 # Get infrastructure details from CloudFormation
 print_step "Getting infrastructure details..."
 
-FRONTEND_BUCKET=$(aws cloudformation describe-stacks \
-    --stack-name $PROJECT_NAME \
-    --profile $AWS_PROFILE \
-    --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName`].OutputValue' \
-    --output text 2>/dev/null)
+# Helper to resolve outputs from possible stack names
+resolve_output() {
+  local output_key="$1"; shift
+  local stack
+  for stack in "$@"; do
+    if aws cloudformation describe-stacks --stack-name "$stack" --profile "$AWS_PROFILE" >/dev/null 2>&1; then
+      aws cloudformation describe-stacks \
+        --stack-name "$stack" \
+        --profile "$AWS_PROFILE" \
+        --query "Stacks[0].Outputs[?OutputKey==\`$output_key\`].OutputValue" \
+        --output text 2>/dev/null && return 0
+    fi
+  done
+  return 1
+}
 
-CLOUDFRONT_DOMAIN=$(aws cloudformation describe-stacks \
-    --stack-name $PROJECT_NAME \
-    --profile $AWS_PROFILE \
-    --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontDomainName`].OutputValue' \
-    --output text 2>/dev/null)
+STACK_CANDIDATES=("$PROJECT_NAME" "TotalLifeAI-Prod-Clean" "TotalLifeAI-Production")
 
-ALB_DNS=$(aws cloudformation describe-stacks \
-    --stack-name $PROJECT_NAME \
-    --profile $AWS_PROFILE \
-    --query 'Stacks[0].Outputs[?OutputKey==`LoadBalancerDNS`].OutputValue' \
-    --output text 2>/dev/null)
+FRONTEND_BUCKET=$(resolve_output "FrontendBucketName" "${STACK_CANDIDATES[@]}")
+CLOUDFRONT_DOMAIN=$(resolve_output "CloudFrontDomainName" "${STACK_CANDIDATES[@]}")
+ALB_DNS=$(resolve_output "LoadBalancerDNS" "${STACK_CANDIDATES[@]}")
 
 if [ -z "$FRONTEND_BUCKET" ] || [ "$FRONTEND_BUCKET" = "None" ]; then
-    print_error "Could not find S3 bucket. Make sure infrastructure is deployed first."
+    print_error "Could not find S3 bucket output (FrontendBucketName)."
+    print_info "Checked stacks: ${STACK_CANDIDATES[*]}"
+    print_info "Set PROJECT_NAME env var if your stack has a different name."
     exit 1
 fi
 
 if [ -z "$CLOUDFRONT_DOMAIN" ] || [ "$CLOUDFRONT_DOMAIN" = "None" ]; then
-    print_error "Could not find CloudFront distribution. Make sure infrastructure is deployed first."
+    print_error "Could not find CloudFront distribution output (CloudFrontDomainName)."
+    print_info "Checked stacks: ${STACK_CANDIDATES[*]}"
     exit 1
 fi
 
@@ -100,9 +109,10 @@ npm install
 
 # Create production environment file
 print_step "Creating production environment configuration..."
+# Route API via CloudFront using relative path to avoid CORS/mixed content
 cat > .env.production << EOF
 # Production Environment Configuration
-REACT_APP_API_URL=http://$ALB_DNS
+REACT_APP_API_URL=/api/v1
 REACT_APP_ENVIRONMENT=production
 REACT_APP_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 REACT_APP_BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -200,11 +210,11 @@ echo -e "${BLUE}📦 S3 Bucket: $FRONTEND_BUCKET${NC}"
 if [ ! -z "$DISTRIBUTION_ID" ]; then
     echo -e "${BLUE}☁️  CloudFront: $DISTRIBUTION_ID${NC}"
 fi
-echo -e "${BLUE}🔧 API Backend: http://$ALB_DNS${NC}"
+echo -e "${BLUE}🔧 API Backend (via CloudFront): https://$CLOUDFRONT_DOMAIN/api/v1${NC}"
 echo ""
 echo -e "${YELLOW}📋 Environment Configuration:${NC}"
 echo -e "${YELLOW}   • Environment: production${NC}"
-echo -e "${YELLOW}   • API URL: http://$ALB_DNS${NC}"
+echo -e "${YELLOW}   • API URL: /api/v1 (proxied by CloudFront)${NC}"
 echo -e "${YELLOW}   • Version: $(git rev-parse --short HEAD 2>/dev/null || echo "unknown")${NC}"
 echo ""
 echo -e "${GREEN}✅ Your frontend is now live!${NC}"
