@@ -21,9 +21,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Request interceptor for debugging
+// Request interceptor for debugging (development only)
 api.interceptors.request.use((config) => {
-  console.log('API Request:', config.method?.toUpperCase(), config.url, config.data);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('API Request:', config.method?.toUpperCase(), config.url, config.data);
+  }
   return config;
 });
 
@@ -31,7 +33,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('API Error:', error.response?.data || error.message);
+    }
     
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {

@@ -10,13 +10,18 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy backend files
-COPY backend/ /app/
+# Copy pyproject.toml and poetry.lock first (for better layer caching)
+COPY pyproject.toml ./
+COPY poetry.loc[k] ./
+COPY README.md ./
 
 # Install Python dependencies
 RUN pip install poetry
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-dev
+RUN poetry install --only main --no-root
+
+# Copy backend application code
+COPY backend/app ./app
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app

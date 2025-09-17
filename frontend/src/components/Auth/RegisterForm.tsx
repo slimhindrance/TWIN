@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, Lock, Mail, User } from 'lucide-react';
+import { UserPlus, Lock, Mail, User, AlertCircle } from 'lucide-react';
 
 interface RegisterFormProps {
   onRegister: (email: string, username: string, password: string) => Promise<void>;
@@ -12,17 +12,23 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setError('');
+
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
-    
+
     if (email && username && password) {
-      await onRegister(email, username, password);
+      try {
+        await onRegister(email, username, password);
+      } catch (err) {
+        setError('Registration failed. Please try again.');
+      }
     }
   };
 
@@ -36,6 +42,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitch
           <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
           <p className="text-gray-600 mt-2">Join the Digital Twin revolution</p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+            <span className="text-red-700 text-sm">{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

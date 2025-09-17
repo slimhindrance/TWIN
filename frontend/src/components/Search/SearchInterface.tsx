@@ -32,7 +32,9 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ onClose }) => {
       });
       setResults(response.results);
     } catch (error) {
-      console.error('Search error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Search error:', error);
+      }
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -42,7 +44,9 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ onClose }) => {
   const handleResultClick = (result: SearchResult) => {
     // In a more complete implementation, this could open a detailed view
     // or insert the content into the chat
-    console.log('Result clicked:', result);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Result clicked:', result);
+    }
   };
 
   return (

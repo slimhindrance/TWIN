@@ -4,6 +4,7 @@ Multi-source knowledge management
 import logging
 from typing import Dict, List, Any, Optional
 from enum import Enum
+from datetime import datetime
 
 from app.services.obsidian_parser import ObsidianParser
 from app.services.notion_parser import NotionParser
@@ -24,6 +25,7 @@ class KnowledgeManager:
     def __init__(self):
         """Initialize the knowledge manager."""
         self.sources: Dict[str, KnowledgeSource] = {}
+        self.sync_times: Dict[str, datetime] = {}  # Track last sync times per source
     
     def _get_source_key(self, user_id: str, source_type: SourceType) -> str:
         """Generate a unique key for a user's knowledge source."""
@@ -118,11 +120,12 @@ class KnowledgeManager:
                     is_connected = await source.test_connection()
                     doc_count = await source.get_document_count()
                     
+                    last_sync = self.sync_times.get(source_key)
                     statuses.append({
                         "type": source_type.value,
                         "connected": is_connected,
                         "document_count": doc_count,
-                        "last_synced": None  # TODO: Track sync times
+                        "last_synced": last_sync.isoformat() if last_sync else None
                     })
                 except Exception as e:
                     logger.error(f"Error getting status for {source_key}: {e}")
@@ -153,9 +156,9 @@ class KnowledgeManager:
         try:
             # Get all documents from all sources
             all_documents = await self.get_all_documents(user_id)
-            
+
             # Clear existing documents for this user
-            # TODO: Implement user-specific collection clearing
+            await self._clear_user_documents(vector_store, user_id)
             
             # Add all documents to vector store
             for doc in all_documents:
@@ -178,12 +181,37 @@ class KnowledgeManager:
                     sync_results["errors"].append(str(e))
             
             sync_results["sources_synced"] = len([k for k in self.sources.keys() if k.startswith(user_id)])
-            
+
+            # Update sync times for all user sources
+            current_time = datetime.now()
+            for source_key in self.sources.keys():
+                if source_key.startswith(user_id):
+                    self.sync_times[source_key] = current_time
+
         except Exception as e:
             logger.error(f"Error during sync for user {user_id}: {e}")
             sync_results["errors"].append(str(e))
-        
+
         return sync_results
+
+    async def _clear_user_documents(self, vector_store, user_id: str) -> None:
+        """Clear all documents for a specific user from the vector store."""
+        try:
+            # Query for documents belonging to this user
+            user_docs = await vector_store.query(
+                query_text="",
+                n_results=10000,  # Large number to get all docs
+                where={"user_id": user_id}
+            )
+
+            if user_docs and len(user_docs.get('ids', [])) > 0:
+                # Delete user-specific documents
+                await vector_store.delete_documents(user_docs['ids'])
+                logger.info(f"Cleared {len(user_docs['ids'])} existing documents for user {user_id}")
+
+        except Exception as e:
+            logger.warning(f"Could not clear existing documents for user {user_id}: {e}")
+            # Continue with sync even if clearing fails
 
 
 # Global knowledge manager instance

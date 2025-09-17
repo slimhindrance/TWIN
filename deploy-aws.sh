@@ -19,7 +19,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_NAME="TotalLifeAI-Production"
+PROJECT_NAME="TotalLifeAI-Prod-Clean"
 AWS_REGION="us-east-1"  # Change this if needed
 AWS_PROFILE="default"   # Change this if using named profile
 

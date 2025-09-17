@@ -106,17 +106,10 @@ class TotalLifeAIStack(Stack):
         # ECR REPOSITORY - For Docker images
         # ========================================
         
-        self.ecr_repository = ecr.Repository(
+        # Use existing ECR repository
+        self.ecr_repository = ecr.Repository.from_repository_name(
             self, "TotalLifeAI-ECR",
-            repository_name="totallifeai-backend",
-            lifecycle_rules=[
-                ecr.LifecycleRule(
-                    max_image_count=10,
-                    rule_priority=1,
-                    description="Keep only 10 most recent images"
-                )
-            ],
-            removal_policy=RemovalPolicy.DESTROY
+            repository_name="totallifeai-backend"
         )
         
         # ========================================
@@ -205,6 +198,7 @@ class TotalLifeAIStack(Stack):
             "Allow HTTPS traffic"
         )
         
+
         # ========================================
         # ECS FARGATE SERVICE
         # ========================================
@@ -238,7 +232,7 @@ class TotalLifeAIStack(Stack):
             cpu=512,
             desired_count=2,  # Start with 2 instances for HA
             task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-                image=ecs.ContainerImage.from_registry("nginx"),  # Placeholder, will be updated
+                image=ecs.ContainerImage.from_ecr_repository(self.ecr_repository, "latest"),
                 container_port=8000,
                 task_role=task_role,
                 execution_role=task_execution_role,
@@ -251,7 +245,10 @@ class TotalLifeAIStack(Stack):
                     "AWS_DEFAULT_REGION": self.region,
                     "DATABASE_HOST": self.database.instance_endpoint.hostname,
                     "DATABASE_PORT": str(self.database.instance_endpoint.port),
-                    "DATABASE_NAME": "totallifeai"
+                    "DATABASE_NAME": "totallifeai",
+                    "TOGETHER_API_KEY_SSM": "/totallifeai/together-api-key",
+                    "OPENAI_API_KEY_SSM": "/totallifeai/openai-api-key",
+                    "SECRET_KEY_SSM": "/totallifeai/secret-key"
                 },
                 secrets={
                     "DATABASE_USERNAME": ecs.Secret.from_secrets_manager(
@@ -366,31 +363,6 @@ class TotalLifeAIStack(Stack):
             comment="Total Life AI Frontend Distribution"
         )
         
-        # ========================================
-        # SYSTEMS MANAGER PARAMETERS - Configuration
-        # ========================================
-        
-        # Create parameter store values for configuration
-        ssm.StringParameter(
-            self, "TogetherAPIKey",
-            parameter_name="/totallifeai/together-api-key",
-            string_value="CHANGE_ME",  # Will be updated manually
-            description="Together AI API Key for cost optimization"
-        )
-        
-        ssm.StringParameter(
-            self, "OpenAIAPIKey", 
-            parameter_name="/totallifeai/openai-api-key",
-            string_value="CHANGE_ME",  # Will be updated manually
-            description="OpenAI API Key for fallback"
-        )
-        
-        ssm.StringParameter(
-            self, "SecretKey",
-            parameter_name="/totallifeai/secret-key",
-            string_value="CHANGE_ME",  # Generate random key
-            description="Application secret key"
-        )
         
         # ========================================
         # OUTPUTS - Important values for deployment
@@ -448,7 +420,7 @@ class TotalLifeAIStack(Stack):
 app = cdk.App()
 
 TotalLifeAIStack(
-    app, "TotalLifeAI-Production",
+    app, "TotalLifeAI-Prod-Clean",
     description="Complete AWS infrastructure for Total Life AI RAG system"
 )
 

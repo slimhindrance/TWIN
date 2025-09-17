@@ -37,8 +37,8 @@ $PYTHON_CMD -m pip install -r requirements.txt
 
 # Verify installations
 echo "✅ Verifying installations..."
-$PYTHON_CMD -c "import aws_cdk; print(f'AWS CDK: {aws_cdk.__version__}')" || exit 1
-$PYTHON_CMD -c "import constructs; print(f'Constructs: {constructs.__version__}')" || exit 1
+$PYTHON_CMD -c "import aws_cdk; print('AWS CDK: Installed successfully')" || exit 1
+$PYTHON_CMD -c "import constructs; print('Constructs: Installed successfully')" || exit 1
 
 echo ""
 echo "🎉 CDK environment setup complete!"

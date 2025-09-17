@@ -50,8 +50,8 @@ Write-Host "📚 Installing CDK dependencies..." -ForegroundColor Yellow
 # Verify installations
 Write-Host "✅ Verifying installations..." -ForegroundColor Green
 try {
-    & $pythonCmd -c "import aws_cdk; print(f'AWS CDK: {aws_cdk.__version__}')"
-    & $pythonCmd -c "import constructs; print(f'Constructs: {constructs.__version__}')"
+    & $pythonCmd -c "import aws_cdk; print('AWS CDK: Installed successfully')"
+    & $pythonCmd -c "import constructs; print('Constructs: Installed successfully')"
     Write-Host "✅ All dependencies installed successfully!" -ForegroundColor Green
 } catch {
     Write-Host "❌ Dependency verification failed" -ForegroundColor Red

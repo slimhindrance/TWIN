@@ -1,0 +1,2280 @@
+{
+ "Description": "Complete AWS infrastructure for Total Life AI RAG system",
+ "Resources": {
+  "TotalLifeAIVPC7DF7C911": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/Resource"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet1Subnet1E820FB9": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1/Subnet"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet1RouteTable6590992A": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1/RouteTable"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet1RouteTableAssociation7DA8D50F": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet1RouteTable6590992A"
+    },
+    "SubnetId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet1Subnet1E820FB9"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1/RouteTableAssociation"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet1DefaultRoute86E103F1": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "TotalLifeAIVPCIGWEA3DCB0B"
+    },
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet1RouteTable6590992A"
+    }
+   },
+   "DependsOn": [
+    "TotalLifeAIVPCVPCGW07874334"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1/DefaultRoute"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet1EIP80B5F2AB": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1/EIP"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet1NATGateway563544D8": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "TotalLifeAIVPCPublicSubnet1EIP80B5F2AB",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet1Subnet1E820FB9"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1"
+     }
+    ]
+   },
+   "DependsOn": [
+    "TotalLifeAIVPCPublicSubnet1DefaultRoute86E103F1",
+    "TotalLifeAIVPCPublicSubnet1RouteTableAssociation7DA8D50F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet1/NATGateway"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet2Subnet3C5FAE88": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.1.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2/Subnet"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet2RouteTable3C88E758": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2/RouteTable"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet2RouteTableAssociationE878390A": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet2RouteTable3C88E758"
+    },
+    "SubnetId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet2Subnet3C5FAE88"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2/RouteTableAssociation"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet2DefaultRoute538854B1": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "TotalLifeAIVPCIGWEA3DCB0B"
+    },
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet2RouteTable3C88E758"
+    }
+   },
+   "DependsOn": [
+    "TotalLifeAIVPCVPCGW07874334"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2/DefaultRoute"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet2EIPE0BCFD07": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2/EIP"
+   }
+  },
+  "TotalLifeAIVPCPublicSubnet2NATGateway586FE5C1": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "TotalLifeAIVPCPublicSubnet2EIPE0BCFD07",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet2Subnet3C5FAE88"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2"
+     }
+    ]
+   },
+   "DependsOn": [
+    "TotalLifeAIVPCPublicSubnet2DefaultRoute538854B1",
+    "TotalLifeAIVPCPublicSubnet2RouteTableAssociationE878390A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PublicSubnet2/NATGateway"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet1SubnetC9F1E6F2": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.2.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet1/Subnet"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet1RouteTable8E48F9A6": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet1/RouteTable"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet1RouteTableAssociationDE0D3231": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPrivateSubnet1RouteTable8E48F9A6"
+    },
+    "SubnetId": {
+     "Ref": "TotalLifeAIVPCPrivateSubnet1SubnetC9F1E6F2"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet1/RouteTableAssociation"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet1DefaultRoute75E28356": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet1NATGateway563544D8"
+    },
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPrivateSubnet1RouteTable8E48F9A6"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet1/DefaultRoute"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet2Subnet66689A8B": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.3.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet2/Subnet"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet2RouteTableDB2B7FFE": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet2/RouteTable"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet2RouteTableAssociationAADE4A3B": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPrivateSubnet2RouteTableDB2B7FFE"
+    },
+    "SubnetId": {
+     "Ref": "TotalLifeAIVPCPrivateSubnet2Subnet66689A8B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet2/RouteTableAssociation"
+   }
+  },
+  "TotalLifeAIVPCPrivateSubnet2DefaultRoute3354DB43": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "TotalLifeAIVPCPublicSubnet2NATGateway586FE5C1"
+    },
+    "RouteTableId": {
+     "Ref": "TotalLifeAIVPCPrivateSubnet2RouteTableDB2B7FFE"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/PrivateSubnet2/DefaultRoute"
+   }
+  },
+  "TotalLifeAIVPCIGWEA3DCB0B": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "TotalLifeAI-Production/TotalLifeAI-VPC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/IGW"
+   }
+  },
+  "TotalLifeAIVPCVPCGW07874334": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "TotalLifeAIVPCIGWEA3DCB0B"
+    },
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/VPCGW"
+   }
+  },
+  "TotalLifeAIVPCRestrictDefaultSecurityGroupCustomResourceE4C5F436": {
+   "Type": "Custom::VpcRestrictDefaultSG",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E",
+      "Arn"
+     ]
+    },
+    "DefaultSecurityGroupId": {
+     "Fn::GetAtt": [
+      "TotalLifeAIVPC7DF7C911",
+      "DefaultSecurityGroup"
+     ]
+    },
+    "Account": {
+     "Ref": "AWS::AccountId"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-VPC/RestrictDefaultSecurityGroupCustomResource/Default"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyName": "Inline",
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress"
+         ],
+         "Resource": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "arn:",
+             {
+              "Ref": "AWS::Partition"
+             },
+             ":ec2:",
+             {
+              "Ref": "AWS::Region"
+             },
+             ":",
+             {
+              "Ref": "AWS::AccountId"
+             },
+             ":security-group/",
+             {
+              "Fn::GetAtt": [
+               "TotalLifeAIVPC7DF7C911",
+               "DefaultSecurityGroup"
+              ]
+             }
+            ]
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "__entrypoint__.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Description": "Lambda function for removing all inbound/outbound rules from the VPC default security group"
+   },
+   "DependsOn": [
+    "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler",
+    "aws:asset:path": "asset.7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200",
+    "aws:asset:property": "Code"
+   }
+  },
+  "DatabaseSecurityGroupDDAA10F5": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for RDS database",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "255.255.255.255/32",
+      "Description": "Disallow all traffic",
+      "FromPort": 252,
+      "IpProtocol": "icmp",
+      "ToPort": 86
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Database-SecurityGroup/Resource"
+   }
+  },
+  "DatabaseSecurityGroupfromTotalLifeAIProductionECSSecurityGroupEE4D8B135432D8E17294": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow ECS to reach PostgreSQL",
+    "FromPort": 5432,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "DatabaseSecurityGroupDDAA10F5",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "ECSSecurityGroup5B24A5B9",
+      "GroupId"
+     ]
+    },
+    "ToPort": 5432
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Database-SecurityGroup/from TotalLifeAIProductionECSSecurityGroupEE4D8B13:5432"
+   }
+  },
+  "DBCredentialsCBF39AE9": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "Description": {
+     "Fn::Join": [
+      "",
+      [
+       "Generated by the CDK for stack: ",
+       {
+        "Ref": "AWS::StackName"
+       }
+      ]
+     ]
+    },
+    "GenerateSecretString": {
+     "ExcludeCharacters": " %+~`#$&*()|[]{}:;<>?!'/@\"\\",
+     "GenerateStringKey": "password",
+     "PasswordLength": 30,
+     "SecretStringTemplate": "{\"username\":\"totallifeai_admin\"}"
+    },
+    "Name": "totallifeai/database/credentials"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/DBCredentials/Resource"
+   }
+  },
+  "DBCredentialsAttachment5F5381AF": {
+   "Type": "AWS::SecretsManager::SecretTargetAttachment",
+   "Properties": {
+    "SecretId": {
+     "Ref": "DBCredentialsCBF39AE9"
+    },
+    "TargetId": {
+     "Ref": "TotalLifeAIDatabase205DB213"
+    },
+    "TargetType": "AWS::RDS::DBInstance"
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/DBCredentials/Attachment/Resource"
+   }
+  },
+  "TotalLifeAIDatabaseSubnetGroup2F9AAD79": {
+   "Type": "AWS::RDS::DBSubnetGroup",
+   "Properties": {
+    "DBSubnetGroupDescription": "Subnet group for TotalLifeAI-Database database",
+    "SubnetIds": [
+     {
+      "Ref": "TotalLifeAIVPCPrivateSubnet1SubnetC9F1E6F2"
+     },
+     {
+      "Ref": "TotalLifeAIVPCPrivateSubnet2Subnet66689A8B"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Database/SubnetGroup/Default"
+   }
+  },
+  "TotalLifeAIDatabase205DB213": {
+   "Type": "AWS::RDS::DBInstance",
+   "Properties": {
+    "AllocatedStorage": "20",
+    "AutoMinorVersionUpgrade": true,
+    "BackupRetentionPeriod": 7,
+    "CopyTagsToSnapshot": true,
+    "DBInstanceClass": "db.t3.micro",
+    "DBName": "totallifeai",
+    "DBSubnetGroupName": {
+     "Ref": "TotalLifeAIDatabaseSubnetGroup2F9AAD79"
+    },
+    "DeleteAutomatedBackups": false,
+    "DeletionProtection": false,
+    "Engine": "postgres",
+    "EngineVersion": "15",
+    "MasterUserPassword": {
+     "Fn::Join": [
+      "",
+      [
+       "{{resolve:secretsmanager:",
+       {
+        "Ref": "DBCredentialsCBF39AE9"
+       },
+       ":SecretString:password::}}"
+      ]
+     ]
+    },
+    "MasterUsername": {
+     "Fn::Join": [
+      "",
+      [
+       "{{resolve:secretsmanager:",
+       {
+        "Ref": "DBCredentialsCBF39AE9"
+       },
+       ":SecretString:username::}}"
+      ]
+     ]
+    },
+    "MaxAllocatedStorage": 100,
+    "PubliclyAccessible": false,
+    "StorageType": "gp2",
+    "VPCSecurityGroups": [
+     {
+      "Fn::GetAtt": [
+       "DatabaseSecurityGroupDDAA10F5",
+       "GroupId"
+      ]
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Database/Resource"
+   }
+  },
+  "TotalLifeAIECR94936239": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "LifecyclePolicy": {
+     "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Keep only 10 most recent images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
+    },
+    "RepositoryName": "totallifeai-backend"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-ECR/Resource"
+   }
+  },
+  "TotalLifeAICluster733AC0B5": {
+   "Type": "AWS::ECS::Cluster",
+   "Properties": {
+    "ClusterName": "totallifeai-cluster",
+    "ClusterSettings": [
+     {
+      "Name": "containerInsights",
+      "Value": "enabled"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Cluster/Resource"
+   }
+  },
+  "TaskExecutionRole250D2532": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TaskExecutionRole/Resource"
+   }
+  },
+  "TaskExecutionRoleDefaultPolicyA84DD1B0": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "TotalLifeAIServiceTaskDefwebLogGroupF26D7828",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "DBCredentialsCBF39AE9"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "TaskExecutionRoleDefaultPolicyA84DD1B0",
+    "Roles": [
+     {
+      "Ref": "TaskExecutionRole250D2532"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TaskExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "TaskRole30FC0FBB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+          "bedrock:ListFoundationModels"
+         ],
+         "Effect": "Allow",
+         "Resource": "*"
+        },
+        {
+         "Action": [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+         ],
+         "Effect": "Allow",
+         "Resource": {
+          "Fn::Join": [
+           "",
+           [
+            "arn:aws:ssm:",
+            {
+             "Ref": "AWS::Region"
+            },
+            ":",
+            {
+             "Ref": "AWS::AccountId"
+            },
+            ":parameter/totallifeai/*"
+           ]
+          ]
+         }
+        },
+        {
+         "Action": [
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:GetSecretValue"
+         ],
+         "Effect": "Allow",
+         "Resource": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "arn:aws:secretsmanager:",
+             {
+              "Ref": "AWS::Region"
+             },
+             ":",
+             {
+              "Ref": "AWS::AccountId"
+             },
+             ":secret:totallifeai/*"
+            ]
+           ]
+          },
+          {
+           "Ref": "DBCredentialsCBF39AE9"
+          }
+         ]
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "AIServicesPolicy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TaskRole/Resource"
+   }
+  },
+  "ALBSecurityGroup05F9D0D0": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for Application Load Balancer",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "255.255.255.255/32",
+      "Description": "Disallow all traffic",
+      "FromPort": 252,
+      "IpProtocol": "icmp",
+      "ToPort": 86
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow HTTP traffic",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     },
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow HTTPS traffic",
+      "FromPort": 443,
+      "IpProtocol": "tcp",
+      "ToPort": 443
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/ALB-SecurityGroup/Resource"
+   }
+  },
+  "ECSSecurityGroup5B24A5B9": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for ECS tasks",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/ECS-SecurityGroup/Resource"
+   }
+  },
+  "ECSSecurityGroupfromTotalLifeAIProductionALBSecurityGroupC4C0597680004A947805": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Allow ALB to reach ECS tasks",
+    "FromPort": 8000,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "ECSSecurityGroup5B24A5B9",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "ALBSecurityGroup05F9D0D0",
+      "GroupId"
+     ]
+    },
+    "ToPort": 8000
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/ECS-SecurityGroup/from TotalLifeAIProductionALBSecurityGroupC4C05976:8000"
+   }
+  },
+  "ECSSecurityGroupfromTotalLifeAIProductionTotalLifeAIServiceLBSecurityGroup59EEF65C8000CF5AB9F8": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Load balancer to target",
+    "FromPort": 8000,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "ECSSecurityGroup5B24A5B9",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "TotalLifeAIServiceLBSecurityGroup964C0E7A",
+      "GroupId"
+     ]
+    },
+    "ToPort": 8000
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/ECS-SecurityGroup/from TotalLifeAIProductionTotalLifeAIServiceLBSecurityGroup59EEF65C:8000"
+   }
+  },
+  "TotalLifeAIServiceLBB178FC4A": {
+   "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+   "Properties": {
+    "LoadBalancerAttributes": [
+     {
+      "Key": "deletion_protection.enabled",
+      "Value": "false"
+     }
+    ],
+    "Scheme": "internet-facing",
+    "SecurityGroups": [
+     {
+      "Fn::GetAtt": [
+       "TotalLifeAIServiceLBSecurityGroup964C0E7A",
+       "GroupId"
+      ]
+     }
+    ],
+    "Subnets": [
+     {
+      "Ref": "TotalLifeAIVPCPublicSubnet1Subnet1E820FB9"
+     },
+     {
+      "Ref": "TotalLifeAIVPCPublicSubnet2Subnet3C5FAE88"
+     }
+    ],
+    "Type": "application"
+   },
+   "DependsOn": [
+    "TotalLifeAIVPCPublicSubnet1DefaultRoute86E103F1",
+    "TotalLifeAIVPCPublicSubnet1RouteTableAssociation7DA8D50F",
+    "TotalLifeAIVPCPublicSubnet2DefaultRoute538854B1",
+    "TotalLifeAIVPCPublicSubnet2RouteTableAssociationE878390A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/LB/Resource"
+   }
+  },
+  "TotalLifeAIServiceLBSecurityGroup964C0E7A": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Automatically created Security Group for ELB TotalLifeAIProductionTotalLifeAIServiceLBA5F857A2",
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow from anyone on port 80",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     }
+    ],
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/LB/SecurityGroup/Resource"
+   }
+  },
+  "TotalLifeAIServiceLBSecurityGrouptoTotalLifeAIProductionECSSecurityGroupEE4D8B1380006369D72D": {
+   "Type": "AWS::EC2::SecurityGroupEgress",
+   "Properties": {
+    "Description": "Load balancer to target",
+    "DestinationSecurityGroupId": {
+     "Fn::GetAtt": [
+      "ECSSecurityGroup5B24A5B9",
+      "GroupId"
+     ]
+    },
+    "FromPort": 8000,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "TotalLifeAIServiceLBSecurityGroup964C0E7A",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "ToPort": 8000
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/LB/SecurityGroup/to TotalLifeAIProductionECSSecurityGroupEE4D8B13:8000"
+   }
+  },
+  "TotalLifeAIServiceLBPublicListener9AD58385": {
+   "Type": "AWS::ElasticLoadBalancingV2::Listener",
+   "Properties": {
+    "DefaultActions": [
+     {
+      "TargetGroupArn": {
+       "Ref": "TotalLifeAIServiceLBPublicListenerECSGroup9CEE0BB3"
+      },
+      "Type": "forward"
+     }
+    ],
+    "LoadBalancerArn": {
+     "Ref": "TotalLifeAIServiceLBB178FC4A"
+    },
+    "Port": 80,
+    "Protocol": "HTTP"
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/LB/PublicListener/Resource"
+   }
+  },
+  "TotalLifeAIServiceLBPublicListenerECSGroup9CEE0BB3": {
+   "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+   "Properties": {
+    "HealthCheckIntervalSeconds": 60,
+    "HealthCheckPath": "/health",
+    "HealthCheckTimeoutSeconds": 30,
+    "HealthyThresholdCount": 2,
+    "Port": 80,
+    "Protocol": "HTTP",
+    "TargetGroupAttributes": [
+     {
+      "Key": "stickiness.enabled",
+      "Value": "false"
+     }
+    ],
+    "TargetType": "ip",
+    "UnhealthyThresholdCount": 3,
+    "VpcId": {
+     "Ref": "TotalLifeAIVPC7DF7C911"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/LB/PublicListener/ECSGroup/Resource"
+   }
+  },
+  "TotalLifeAIServiceTaskDef2D0AF777": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "ENVIRONMENT",
+        "Value": "production"
+       },
+       {
+        "Name": "AWS_DEFAULT_REGION",
+        "Value": {
+         "Ref": "AWS::Region"
+        }
+       },
+       {
+        "Name": "DATABASE_HOST",
+        "Value": {
+         "Fn::GetAtt": [
+          "TotalLifeAIDatabase205DB213",
+          "Endpoint.Address"
+         ]
+        }
+       },
+       {
+        "Name": "DATABASE_PORT",
+        "Value": {
+         "Fn::GetAtt": [
+          "TotalLifeAIDatabase205DB213",
+          "Endpoint.Port"
+         ]
+        }
+       },
+       {
+        "Name": "DATABASE_NAME",
+        "Value": "totallifeai"
+       },
+       {
+        "Name": "TOGETHER_API_KEY_SSM",
+        "Value": "/totallifeai/together-api-key"
+       },
+       {
+        "Name": "OPENAI_API_KEY_SSM",
+        "Value": "/totallifeai/openai-api-key"
+       },
+       {
+        "Name": "SECRET_KEY_SSM",
+        "Value": "/totallifeai/secret-key"
+       }
+      ],
+      "Essential": true,
+      "Image": "nginx",
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "TotalLifeAIServiceTaskDefwebLogGroupF26D7828"
+        },
+        "awslogs-stream-prefix": "totallifeai",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "web",
+      "PortMappings": [
+       {
+        "ContainerPort": 8000,
+        "Protocol": "tcp"
+       }
+      ],
+      "Secrets": [
+       {
+        "Name": "DATABASE_USERNAME",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "DBCredentialsCBF39AE9"
+           },
+           ":username::"
+          ]
+         ]
+        }
+       },
+       {
+        "Name": "DATABASE_PASSWORD",
+        "ValueFrom": {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Ref": "DBCredentialsCBF39AE9"
+           },
+           ":password::"
+          ]
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "Cpu": "512",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "TaskExecutionRole250D2532",
+      "Arn"
+     ]
+    },
+    "Family": "TotalLifeAIProductionTotalLifeAIServiceTaskDef66B5EEE7",
+    "Memory": "1024",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "TaskRole30FC0FBB",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/TaskDef/Resource"
+   }
+  },
+  "TotalLifeAIServiceTaskDefwebLogGroupF26D7828": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/TaskDef/web/LogGroup/Resource"
+   }
+  },
+  "TotalLifeAIService09B8FFCB": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Ref": "TotalLifeAICluster733AC0B5"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 2,
+    "EnableECSManagedTags": false,
+    "HealthCheckGracePeriodSeconds": 60,
+    "LaunchType": "FARGATE",
+    "LoadBalancers": [
+     {
+      "ContainerName": "web",
+      "ContainerPort": 8000,
+      "TargetGroupArn": {
+       "Ref": "TotalLifeAIServiceLBPublicListenerECSGroup9CEE0BB3"
+      }
+     }
+    ],
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "ECSSecurityGroup5B24A5B9",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Ref": "TotalLifeAIVPCPrivateSubnet1SubnetC9F1E6F2"
+       },
+       {
+        "Ref": "TotalLifeAIVPCPrivateSubnet2Subnet66689A8B"
+       }
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "TotalLifeAIServiceTaskDef2D0AF777"
+    }
+   },
+   "DependsOn": [
+    "TaskRole30FC0FBB",
+    "TotalLifeAIServiceLBPublicListenerECSGroup9CEE0BB3",
+    "TotalLifeAIServiceLBPublicListener9AD58385"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/Service/Service"
+   }
+  },
+  "TotalLifeAIServiceTaskCountTarget5526DB44": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 10,
+    "MinCapacity": 2,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Ref": "TotalLifeAICluster733AC0B5"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "TotalLifeAIService09B8FFCB",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":iam::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ]
+     ]
+    },
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/Service/TaskCount/Target/Resource"
+   }
+  },
+  "TotalLifeAIServiceTaskCountTargetCpuScaling1F4902B0": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "TotalLifeAIProductionTotalLifeAIServiceTaskCountTargetCpuScaling01490047",
+    "PolicyType": "TargetTrackingScaling",
+    "ScalingTargetId": {
+     "Ref": "TotalLifeAIServiceTaskCountTarget5526DB44"
+    },
+    "TargetTrackingScalingPolicyConfiguration": {
+     "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+     },
+     "ScaleInCooldown": 300,
+     "ScaleOutCooldown": 120,
+     "TargetValue": 70
+    }
+   },
+   "DependsOn": [
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/Service/TaskCount/Target/CpuScaling/Resource"
+   }
+  },
+  "TotalLifeAIServiceTaskCountTargetMemoryScaling3B769B8F": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "TotalLifeAIProductionTotalLifeAIServiceTaskCountTargetMemoryScaling481C792C",
+    "PolicyType": "TargetTrackingScaling",
+    "ScalingTargetId": {
+     "Ref": "TotalLifeAIServiceTaskCountTarget5526DB44"
+    },
+    "TargetTrackingScalingPolicyConfiguration": {
+     "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageMemoryUtilization"
+     },
+     "ScaleInCooldown": 300,
+     "ScaleOutCooldown": 120,
+     "TargetValue": 80
+    }
+   },
+   "DependsOn": [
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/TotalLifeAI-Service/Service/TaskCount/Target/MemoryScaling/Resource"
+   }
+  },
+  "FrontendBucket6A797CCE": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketName": {
+     "Fn::Join": [
+      "",
+      [
+       "totallifeai-frontend-",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       "-",
+       {
+        "Ref": "AWS::Region"
+       }
+      ]
+     ]
+    },
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
+    "Tags": [
+     {
+      "Key": "aws-cdk:auto-delete-objects",
+      "Value": "true"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Frontend-Bucket/Resource"
+   }
+  },
+  "FrontendBucketPolicy8EF8A993": {
+   "Type": "AWS::S3::BucketPolicy",
+   "Properties": {
+    "Bucket": {
+     "Ref": "FrontendBucket6A797CCE"
+    },
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:DeleteObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:PutBucketPolicy"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::GetAtt": [
+          "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+          "Arn"
+         ]
+        }
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "FrontendBucket6A797CCE",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "FrontendBucket6A797CCE",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "CanonicalUser": {
+         "Fn::GetAtt": [
+          "OAIE1EFC67F",
+          "S3CanonicalUserId"
+         ]
+        }
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "FrontendBucket6A797CCE",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "FrontendBucket6A797CCE",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "s3:GetObject",
+       "Effect": "Allow",
+       "Principal": {
+        "CanonicalUser": {
+         "Fn::GetAtt": [
+          "OAIE1EFC67F",
+          "S3CanonicalUserId"
+         ]
+        }
+       },
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          {
+           "Fn::GetAtt": [
+            "FrontendBucket6A797CCE",
+            "Arn"
+           ]
+          },
+          "/*"
+         ]
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Frontend-Bucket/Policy/Resource"
+   }
+  },
+  "FrontendBucketAutoDeleteObjectsCustomResourceE46153B8": {
+   "Type": "Custom::S3AutoDeleteObjects",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+      "Arn"
+     ]
+    },
+    "BucketName": {
+     "Ref": "FrontendBucket6A797CCE"
+    }
+   },
+   "DependsOn": [
+    "FrontendBucketPolicy8EF8A993"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Frontend-Bucket/AutoDeleteObjectsCustomResource/Default"
+   }
+  },
+  "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role"
+   }
+  },
+  "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Description": {
+     "Fn::Join": [
+      "",
+      [
+       "Lambda function for auto-deleting objects in ",
+       {
+        "Ref": "FrontendBucket6A797CCE"
+       },
+       " S3 bucket."
+      ]
+     ]
+    }
+   },
+   "DependsOn": [
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler",
+    "aws:asset:path": "asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6",
+    "aws:asset:property": "Code"
+   }
+  },
+  "OAIE1EFC67F": {
+   "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+   "Properties": {
+    "CloudFrontOriginAccessIdentityConfig": {
+     "Comment": "OAI for Total Life AI frontend"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/OAI/Resource"
+   }
+  },
+  "FrontendDistributionA73E09FE": {
+   "Type": "AWS::CloudFront::Distribution",
+   "Properties": {
+    "DistributionConfig": {
+     "CacheBehaviors": [
+      {
+       "AllowedMethods": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PUT",
+        "PATCH",
+        "POST",
+        "DELETE"
+       ],
+       "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+       "Compress": true,
+       "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3",
+       "PathPattern": "/api/*",
+       "TargetOriginId": "TotalLifeAIProductionFrontendDistributionOrigin23641088C",
+       "ViewerProtocolPolicy": "redirect-to-https"
+      }
+     ],
+     "Comment": "Total Life AI Frontend Distribution",
+     "CustomErrorResponses": [
+      {
+       "ErrorCode": 404,
+       "ResponseCode": 200,
+       "ResponsePagePath": "/index.html"
+      },
+      {
+       "ErrorCode": 403,
+       "ResponseCode": 200,
+       "ResponsePagePath": "/index.html"
+      }
+     ],
+     "DefaultCacheBehavior": {
+      "AllowedMethods": [
+       "GET",
+       "HEAD"
+      ],
+      "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+      "CachedMethods": [
+       "GET",
+       "HEAD"
+      ],
+      "Compress": true,
+      "TargetOriginId": "TotalLifeAIProductionFrontendDistributionOrigin166EFC8EA",
+      "ViewerProtocolPolicy": "redirect-to-https"
+     },
+     "DefaultRootObject": "index.html",
+     "Enabled": true,
+     "HttpVersion": "http2",
+     "IPV6Enabled": true,
+     "Origins": [
+      {
+       "DomainName": {
+        "Fn::GetAtt": [
+         "FrontendBucket6A797CCE",
+         "RegionalDomainName"
+        ]
+       },
+       "Id": "TotalLifeAIProductionFrontendDistributionOrigin166EFC8EA",
+       "S3OriginConfig": {
+        "OriginAccessIdentity": {
+         "Fn::Join": [
+          "",
+          [
+           "origin-access-identity/cloudfront/",
+           {
+            "Ref": "OAIE1EFC67F"
+           }
+          ]
+         ]
+        }
+       }
+      },
+      {
+       "CustomOriginConfig": {
+        "OriginProtocolPolicy": "http-only",
+        "OriginSSLProtocols": [
+         "TLSv1.2"
+        ]
+       },
+       "DomainName": {
+        "Fn::GetAtt": [
+         "TotalLifeAIServiceLBB178FC4A",
+         "DNSName"
+        ]
+       },
+       "Id": "TotalLifeAIProductionFrontendDistributionOrigin23641088C"
+      }
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/Frontend-Distribution/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/31U227bMAz9lr4r2ppg2HMubWGgWI046GtBy4yrxZEMXVIEhv99lBVfkgZ7Inl4RNHkked8/viL/3yALzsTxWFWyZw3mQNxYAR9NCjmvHmvBVvv1Xu6ZqnPKykynyt0ARu9rfYOd5BXOOIjtrRWCwlOajWQg/OUpMH8AfcCDr/gzFIjT+SOhRPl0JDfE2Inl2jpqNfPIyrHMhTeSHd+MdrXXQ//BRJVGrT2G/7UwS0zheXNBhzkYJEYhrrpw0RZB0ogi10OF2xW34Ce2jLb1bBHUFCi4U28OJSNZgemRDf5oIFwm2kZwbzZYq2tdNp0MxmjkKbe15W3NLmQ691nKgRhI/awwb1Ust/HLaKVA6nQTLDL2QzNSYq444ubCajCjkORtfahPwlH6k9HLXQ21aSbrtHodU1+1ODCci1f1jWhnT5eNRQrqkhDK24uxQqsk6IiRt4xpCpPJND7p7tPv4qnPEkTURdO70/ycebDIidhyypd0nxfdTmke79lMJYA77Sl2VCT9KaGIYVC3fiukWh2hp4eHcjiuXFqVwCJacGblReHWOriRTOemcYto7H5Ym9otbx5M7KUaikEST0pSFKk/igU4jwHzl3GhgZlZO572UzjtmVbtNqbIA6Smz6OYVDn3VRq9EkWaFb0qBj9I9DRv4fuLcOZN+9qT2JKz+5Tqx8L/rjgvx/+WilnhlQmj8i30f4DM/VmlcYEAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "TotalLifeAI-Production/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "TotalLifeAIServiceLoadBalancerDNS8FDEC17B": {
+   "Value": {
+    "Fn::GetAtt": [
+     "TotalLifeAIServiceLBB178FC4A",
+     "DNSName"
+    ]
+   }
+  },
+  "TotalLifeAIServiceServiceURL407E2F5F": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "http://",
+      {
+       "Fn::GetAtt": [
+        "TotalLifeAIServiceLBB178FC4A",
+        "DNSName"
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  "DatabaseEndpoint": {
+   "Description": "RDS PostgreSQL endpoint",
+   "Value": {
+    "Fn::GetAtt": [
+     "TotalLifeAIDatabase205DB213",
+     "Endpoint.Address"
+    ]
+   }
+  },
+  "DatabasePort": {
+   "Description": "RDS PostgreSQL port",
+   "Value": {
+    "Fn::GetAtt": [
+     "TotalLifeAIDatabase205DB213",
+     "Endpoint.Port"
+    ]
+   }
+  },
+  "ECRRepositoryURI": {
+   "Description": "ECR repository URI for Docker images",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      {
+       "Fn::Select": [
+        4,
+        {
+         "Fn::Split": [
+          ":",
+          {
+           "Fn::GetAtt": [
+            "TotalLifeAIECR94936239",
+            "Arn"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      ".dkr.ecr.",
+      {
+       "Fn::Select": [
+        3,
+        {
+         "Fn::Split": [
+          ":",
+          {
+           "Fn::GetAtt": [
+            "TotalLifeAIECR94936239",
+            "Arn"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      ".",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "TotalLifeAIECR94936239"
+      }
+     ]
+    ]
+   }
+  },
+  "LoadBalancerDNS": {
+   "Description": "Application Load Balancer DNS name",
+   "Value": {
+    "Fn::GetAtt": [
+     "TotalLifeAIServiceLBB178FC4A",
+     "DNSName"
+    ]
+   }
+  },
+  "CloudFrontDomainName": {
+   "Description": "CloudFront distribution domain name",
+   "Value": {
+    "Fn::GetAtt": [
+     "FrontendDistributionA73E09FE",
+     "DomainName"
+    ]
+   }
+  },
+  "FrontendBucketName": {
+   "Description": "S3 bucket name for frontend files",
+   "Value": {
+    "Ref": "FrontendBucket6A797CCE"
+   }
+  },
+  "ClusterName": {
+   "Description": "ECS cluster name",
+   "Value": {
+    "Ref": "TotalLifeAICluster733AC0B5"
+   }
+  },
+  "ServiceName": {
+   "Description": "ECS service name",
+   "Value": {
+    "Fn::GetAtt": [
+     "TotalLifeAIService09B8FFCB",
+     "Name"
+    ]
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

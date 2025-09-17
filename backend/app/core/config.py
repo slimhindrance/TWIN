@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     REDIS_URL: Optional[str] = None
     
     # Security
-    SECRET_KEY: str = "change-this-in-production"
+    SECRET_KEY: str = "change-this-in-production"  # Override via environment variable in production
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Environment
